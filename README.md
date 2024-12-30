@@ -1,1 +1,1 @@
-# gitlab-automation
+# devops-cli
