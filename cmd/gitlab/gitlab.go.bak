@@ -1,0 +1,104 @@
+/*
+Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+*/
+package cmd
+
+import (
+	"fmt"
+
+	groupsync "github.com/Cloud-for-You/devops-cli/pkg/gitlab/groupsync"
+	ldapGroupSync "github.com/Cloud-for-You/devops-cli/pkg/gitlab/groupsync/ldap"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+var (
+	gitlabUrl, gitlabToken                                         string
+	ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter string
+	azureTenantID                                                  string
+)
+
+var gitlabCmd = &cobra.Command{
+	Use:                   "gitlab",
+	Short:                 "Managing GitLab platform",
+	DisableFlagsInUseLine: true,
+}
+
+var groupSyncCmd = &cobra.Command{
+	Use:                   "groupsync",
+	Short:                 "Synchronization Groups and Members to GitLab",
+	DisableFlagsInUseLine: true,
+}
+
+var ldapGroupSyncCmd = &cobra.Command{
+	Use:   "ldap",
+	Short: "Synchronization Groups and Members from LDAP",
+	Long: `The "groupsync" command allows you to synchronize groups and their members 
+from an LDAP server to your GitLab instance. This is particularly useful for ensuring 
+that group memberships are consistent and up-to-date, enabling efficient permissions 
+management in GitLab.
+
+The command connects to an LDAP server, retrieves group and user data, and updates the 
+corresponding groups and members in GitLab. You can use various flags to specify the 
+LDAP connection, the source groups to synchronize, and other options.
+
+Examples:
+  # Synchronize all groups from the default LDAP server
+  devops-cli groupsync ldap \
+	--ldapHost "ldaps://secure.example.com" \
+	--ldapBindDN "CN=manager,DC=example,DC=com" \
+	--ldapPassword "LDAP_Password_123" \
+	--ldapSearchBase "OU=Groups,DC=example,DC=com" \
+	--gitlabUrl "https://gitlab.example.com" \
+	--gitlabToken "2fb5ae578dd22282da6289d1"
+`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if Debug {
+			for key, value := range viper.GetViper().AllSettings() {
+				log.WithFields(log.Fields{
+					key: value,
+				}).Info("Command Flag")
+			}
+		}
+
+		params := ldapGroupSync.LDAPConfig{
+			Host:        viper.GetString("ldapHost"),
+			BindDN:      viper.GetString("ldapBindDN"),
+			Password:    viper.GetString("ldapPassword"),
+			BaseDN:      viper.GetString("ldapSearchBase"),
+			GroupFilter: viper.GetString("ldapGroupFilter"),
+		}
+		_, err := groupsync.NewGroupSyncer("ldap", params)
+		if err != nil {
+			log.Fatalf("ERROR: %v", err)
+		}
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(gitlabCmd)
+	gitlabCmd.AddCommand(repositoryCmd)
+	//gitlabCmd.AddCommand(groupSyncCmd)
+	groupSyncCmd.AddCommand(ldapGroupSyncCmd)
+	groupSyncCmd.AddCommand(azureGroupSyncCmd)
+	groupSyncCmd.AddCommand(fileGroupSyncCmd)
+
+	// FLAGS
+	// Persistent
+	gitlabCmd.PersistentFlags().StringVar(&gitlabUrl, "gitlabUrl", "", "GitLab URL adresses")
+	viper.BindPFlag("gitlabUrl", gitlabCmd.PersistentFlags().Lookup("gitlabUrl"))
+	gitlabCmd.PersistentFlags().StringVar(&gitlabToken, "gitlabToken", "", "login token")
+	viper.BindPFlag("gitlabToken", gitlabCmd.PersistentFlags().Lookup("gitlabToken"))
+
+	// GitLab repository
+	repositoryCmd.Flags().StringVarP(&ldapHost, "repoName", "n", "", "GIT repository name")
+	repositoryCmd.MarkFlagRequired("repoName")
+	viper.BindPFlag("repoName", repositoryCmd.Flags().Lookup("repoName"))
+
+	
+
+	// Flagy pro Azure
+	azureGroupSyncCmd.Flags().StringVar(&azureTenantID, "tenantID", "", "Tenant ID (default \"\")")
+	viper.BindPFlag("tenantID", azureGroupSyncCmd.Flags().Lookup("tenantID"))
+}

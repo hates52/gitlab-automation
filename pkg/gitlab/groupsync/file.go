@@ -1,5 +1,0 @@
-package groupsync
-
-func init() {
-	
-}
