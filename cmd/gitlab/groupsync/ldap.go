@@ -68,4 +68,5 @@ func LdapGroupSyncCmd(cmd *cobra.Command, args []string) {
 	for _, group := range groups {
 		fmt.Println(group)
 	}
+	groupSyncer.Close()
 }
