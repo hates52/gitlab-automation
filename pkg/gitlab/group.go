@@ -35,3 +35,7 @@ func GetGroups(client *gitlab.Client) ([]*gitlab.Group, error) {
 
 	return allGroups, nil
 }
+
+func CreateGroup() {
+
+}

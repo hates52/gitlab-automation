@@ -9,13 +9,13 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
+	client "gitlab.com/gitlab-org/api/client-go"
 
 	group "github.com/Cloud-for-You/devops-cli/cmd/gitlab/group"
 	groupsync "github.com/Cloud-for-You/devops-cli/cmd/gitlab/groupsync"
 	repository "github.com/Cloud-for-You/devops-cli/cmd/gitlab/repository"
 
-	devops_cli "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
+	gitlab "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
 )
 
 var (
@@ -71,12 +71,12 @@ func listProjects(cmd *cobra.Command, args []string) {
 		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 	}
 
-	client, err := gitlab.NewClient(gitlabToken, gitlab.WithBaseURL(gitlabUrl))
+	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
 	if err != nil {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
-	projects, err := devops_cli.GetProjects(client)
+	projects, err := gitlab.GetProjects(client)
 	if err != nil {
 		log.Fatalf("Error retrieving projects :%v", err)
 	}
@@ -94,12 +94,12 @@ func listGroups(cmd *cobra.Command, args []string) {
 		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 	}
 
-	client, err := gitlab.NewClient(gitlabToken, gitlab.WithBaseURL(gitlabUrl))
+	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
 	if err != nil {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
-	groups, err := devops_cli.GetGroups(client)
+	groups, err := gitlab.GetGroups(client)
 	if err != nil {
 		log.Fatalf("Error retrieving projects :%v", err)
 	}
