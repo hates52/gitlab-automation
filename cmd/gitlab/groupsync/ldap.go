@@ -52,7 +52,7 @@ func init() {
 	viper.BindPFlag("ldapPassword", LdapCmd.Flags().Lookup("ldapPassword"))
 	LdapCmd.Flags().StringVarP(&ldapSearchBase, "ldapSearchBase", "b", "", "specifies the base DN that should be used for the search")
 	viper.BindPFlag("ldapSearchBase", LdapCmd.Flags().Lookup("ldapSearchBase"))
-	LdapCmd.Flags().StringVarP(&ldapFilter, "ldapGroupFilter", "f", "(CN=*)", "(optional) specified LDAP group search filter")
+	LdapCmd.Flags().StringVarP(&ldapFilter, "ldapGroupFilter", "f", "(objectClass=group)", "(optional) specified LDAP group search filter")
 	viper.BindPFlag("ldapGroupFilter", LdapCmd.Flags().Lookup("ldapGroupFilter"))
 
 	LdapCmd.MarkFlagRequired("ldapHost")
