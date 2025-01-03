@@ -87,8 +87,6 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 
 	for _, group := range groups.Entries {
 		// Zalozime skupinu v GitLabu
-		//groupName := group.GetAttributeValue("cn")
-		//gitlab.CreateGroup(groupName)
 		gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
 		gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
 
@@ -96,9 +94,16 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 			log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 		}
 
-		_, res, err := gitlab.CreateGroup(client, group.GetAttributeValue("cn"), "", "private")
+		// Overime zda skupina podle nazvu v GitLabu existuje a pokud ano, pouze do ni membery vlozime
+		result, err := gitlab.GetGroup(client, group.GetAttributeValue("cn"))
+		if err == nil {
+			fmt.Printf("Group %v exist.\n", result.Name)
+			continue
+		}
+
+		_, response, err := gitlab.CreateGroup(client, group.GetAttributeValue("cn"), "", "private")
 		if err != nil {
-			if res != nil && res.StatusCode == http.StatusConflict {
+			if response != nil && response.StatusCode == http.StatusConflict {
 				fmt.Printf("Group '%s' is exists.\n", group.GetAttributeValue("cn"))
 			} else {
 				fmt.Printf("Failed to create GitLab group '%s': %v\n", group.GetAttributeValue("cn"), err)
