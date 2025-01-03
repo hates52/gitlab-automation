@@ -59,7 +59,7 @@ func initConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("Error reading config file: %v\n", err)
+		//fmt.Printf("Error reading config file: %v\n", err)
 		return
 	}
 
