@@ -3,11 +3,14 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/Cloud-for-You/devops-cli/pkg/gitlab/groupsync"
+	gitlab "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
+	groupsync "github.com/Cloud-for-You/devops-cli/pkg/gitlab/groupsync"
+	client "gitlab.com/gitlab-org/api/client-go"
 )
 
 var (
@@ -59,28 +62,58 @@ func init() {
 }
 
 func ldapGroupSync(cmd *cobra.Command, args []string) {
-	client, err := groupsync.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
+	groupsync, err := groupsync.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
 	if err != nil {
 		log.Fatalf("ERROR: %v", err)
 	}
-	defer client.Close()
+	defer groupsync.Close()
 
-	groups, err := client.GetGroups()
+	groups, err := groupsync.GetGroups()
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
 
+	gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
+	gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
+
+	if gitlabToken == "" || gitlabUrl == "" {
+		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
+	}
+
+	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
+	if err != nil {
+		log.Fatalf("Failed to create GitLab client: %v", err)
+	}
+
 	for _, group := range groups.Entries {
+		// Zalozime skupinu v GitLabu
+		//groupName := group.GetAttributeValue("cn")
+		//gitlab.CreateGroup(groupName)
+		gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
+		gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
 
-		fmt.Println(group.DN)
-		members, err := client.GetMembers(group.DN)
+		if gitlabToken == "" || gitlabUrl == "" {
+			log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
+		}
+
+		_, res, err := gitlab.CreateGroup(client, group.GetAttributeValue("cn"), "", "private")
 		if err != nil {
-			log.Fatalf("ERROR: %s", err)
+			if res != nil && res.StatusCode == http.StatusConflict {
+				fmt.Printf("Group '%s' is exists.\n", group.GetAttributeValue("cn"))
+			} else {
+				fmt.Printf("Failed to create GitLab group '%s': %v\n", group.GetAttributeValue("cn"), err)
+			}
+
 		}
 
-		for _, member := range members {
-			fmt.Printf("  - %s\n", member)
-		}
+		// Pro skupinu ziskame membery a vlozime je do skupiny
+		//members, err := groupsync.GetMembers(group.DN)
+		//if err != nil {
+		//	log.Fatalf("ERROR: %s", err)
+		//}
+		//for _, member := range members {
+		//	fmt.Printf("  - %s\n", member)
+		//}
 	}
 
 }

@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"net/http"
 
+	gitlab "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
 	"github.com/spf13/cobra"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
+	client "gitlab.com/gitlab-org/api/client-go"
 )
 
 var (
@@ -38,25 +40,22 @@ func createGroup(cmd *cobra.Command, args []string) {
 		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 	}
 
-	client, err := gitlab.NewClient(gitlabToken, gitlab.WithBaseURL(gitlabUrl))
+	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
 	if err != nil {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
-	groupOptions := &gitlab.CreateGroupOptions{
-		Name:        gitlab.Ptr(groupName),
-		Path:        gitlab.Ptr(groupName),
-		Description: gitlab.Ptr(groupDescription),
-		Visibility:  gitlab.Ptr(gitlab.VisibilityValue(visibility)),
-	}
-
-	group, _, err := client.Groups.CreateGroup(groupOptions)
+	result, res, err := gitlab.CreateGroup(client, groupName, groupDescription, visibility)
 	if err != nil {
-		log.Fatalf("Failed to create GitLab group: %v", err)
+		if res != nil && res.StatusCode == http.StatusConflict {
+			fmt.Printf("Group '%s' is exists.\n", groupName)
+		} else {
+			fmt.Printf("Failed to create GitLab group '%s': %v\n", groupName, err)
+		}
+	} else {
+		fmt.Printf("Group created successfully\n")
+		fmt.Printf("Name: %s\n", result.Name)
+		fmt.Printf("Description: %s\n", result.Description)
+		fmt.Printf("Web URL: %s\n", result.WebURL)
 	}
-
-	fmt.Printf("Group created successfully\n")
-	fmt.Printf("Name: %s\n", group.Name)
-	fmt.Printf("Description: %s\n", group.Description)
-	fmt.Printf("Web URL: %s\n", group.WebURL)
 }

@@ -36,6 +36,19 @@ func GetGroups(client *gitlab.Client) ([]*gitlab.Group, error) {
 	return allGroups, nil
 }
 
-func CreateGroup() {
+func CreateGroup(client *gitlab.Client, groupName string, groupDescription string, visibility string) (*gitlab.Group, *gitlab.Response, error) {
 
+	groupOptions := &gitlab.CreateGroupOptions{
+		Name:        gitlab.Ptr(groupName),
+		Path:        gitlab.Ptr(groupName),
+		Description: gitlab.Ptr(groupDescription),
+		Visibility:  gitlab.Ptr(gitlab.VisibilityValue(visibility)),
+	}
+
+	group, res, err := client.Groups.CreateGroup(groupOptions)
+	if err != nil {
+		return nil, res, err
+	}
+
+	return group, res, nil
 }
