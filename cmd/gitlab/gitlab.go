@@ -35,14 +35,14 @@ var GitlabCmd = &cobra.Command{
 var ListProjectsCmd = &cobra.Command{
 	Use:   "listProjects",
 	Short: "Get all GitLab project",
-	Run:   listProjectsCmd,
+	Run:   listProjects,
 }
 
 // Get all Project name and ID from Gitlab
 var ListGroupsCmd = &cobra.Command{
 	Use:   "listGroups",
 	Short: "List all GitLab groups",
-	Run:   listGroupsCmd,
+	Run:   listGroups,
 }
 
 func init() {
@@ -63,7 +63,7 @@ func init() {
 	GitlabCmd.MarkPersistentFlagRequired("gitlabToken")
 }
 
-func listProjectsCmd(cmd *cobra.Command, args []string) {
+func listProjects(cmd *cobra.Command, args []string) {
 	gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
 	gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
 
@@ -86,7 +86,7 @@ func listProjectsCmd(cmd *cobra.Command, args []string) {
 	}
 }
 
-func listGroupsCmd(cmd *cobra.Command, args []string) {
+func listGroups(cmd *cobra.Command, args []string) {
 	gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
 	gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
 

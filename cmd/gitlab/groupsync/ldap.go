@@ -36,7 +36,7 @@ Examples:
 	--gitlabUrl "https://gitlab.example.com" \
 	--gitlabToken "2fb5ae578dd22282da6289d1"
 `,
-	Run: LdapGroupSyncCmd,
+	Run: ldapGroupSync,
 }
 
 func init() {
@@ -58,7 +58,7 @@ func init() {
 	LdapCmd.MarkFlagRequired("ldapSearchBase")
 }
 
-func LdapGroupSyncCmd(cmd *cobra.Command, args []string) {
+func ldapGroupSync(cmd *cobra.Command, args []string) {
 	client, err := groupsync.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
 	if err != nil {
 		log.Fatalf("ERROR: %v", err)
