@@ -1,7 +1,7 @@
 package groupsync
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/go-ldap/ldap/v3"
 )
@@ -47,7 +47,7 @@ func (l *LDAPGroupSyncer) Close() {
 	}
 }
 
-func (l *LDAPGroupSyncer) GetGroups() *ldap.SearchResult {
+func (l *LDAPGroupSyncer) GetGroups() (*ldap.SearchResult, error) {
 	// Definice vyhledavaciho pozadavku
 	searchRequest := ldap.NewSearchRequest(
 		l.baseDN, // Zakladni DN
@@ -60,25 +60,33 @@ func (l *LDAPGroupSyncer) GetGroups() *ldap.SearchResult {
 	// Provedeme vyhledani v LDAPu
 	result, err := l.conn.Search(searchRequest)
 	if err != nil {
-		log.Fatalf("ERROR: %s", err)
+		return nil, err
 	}
 
-	return result
+	return result, nil
 }
 
-func (l *LDAPGroupSyncer) GetMembers() *ldap.SearchResult {
+func (l *LDAPGroupSyncer) GetMembers(groupDN string) ([]string, error) {
+	// Definice vyhledavaciho pozadavku
 	searchRequest := ldap.NewSearchRequest(
-		l.baseDN, // Zakladni DN
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		"(cn=*)",            // Filtr pro vyhledani skupin
-		[]string{"members"}, // Atributy, které chceme ziskat (napr. common name)
+		groupDN, // Zakladni DN
+		ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false,
+		"(objectClass=*)", // Filtr pro vyhledani skupin
+		[]string{"member"},
 		nil,
 	)
+
 	// Provedeme vyhledani v LDAPu
 	result, err := l.conn.Search(searchRequest)
 	if err != nil {
-		log.Fatalf("ERROR: %s", err)
+		return nil, err
 	}
 
-	return result
+	if len(result.Entries) == 0 {
+		return nil, fmt.Errorf("not found members for group %s", groupDN)
+	}
+
+	members := result.Entries[0].GetAttributeValues("member")
+
+	return members, nil
 }

@@ -63,12 +63,24 @@ func LdapGroupSyncCmd(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("ERROR: %v", err)
 	}
+	defer client.Close()
 
-	groups := client.GetGroups()
-	client.Close()
+	groups, err := client.GetGroups()
+	if err != nil {
+		log.Fatalf("ERROR: %s", err)
+	}
 
 	for _, group := range groups.Entries {
+
 		fmt.Println(group.DN)
+		members, err := client.GetMembers(group.DN)
+		if err != nil {
+			log.Fatalf("ERROR: %s", err)
+		}
+
+		for _, member := range members {
+			fmt.Printf("  - %s\n", member)
+		}
 	}
 
 }
