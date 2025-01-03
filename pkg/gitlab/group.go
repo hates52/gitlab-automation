@@ -36,6 +36,15 @@ func ListGroups(client *gitlab.Client) ([]*gitlab.Group, error) {
 	return allGroups, nil
 }
 
+func GetGroup(client *gitlab.Client, groupName string) (*gitlab.Group, error) {
+	group, _, err := client.Groups.GetGroup(groupName, nil)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
+
+}
+
 func CreateGroup(client *gitlab.Client, groupName string, groupDescription string, visibility string) (*gitlab.Group, *gitlab.Response, error) {
 
 	groupOptions := &gitlab.CreateGroupOptions{
