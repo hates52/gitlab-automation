@@ -47,32 +47,38 @@ func (l *LDAPGroupSyncer) Close() {
 	}
 }
 
-func (l *LDAPGroupSyncer) GetGroups() []string {
-	// Definice vyhledávacího požadavku
+func (l *LDAPGroupSyncer) GetGroups() *ldap.SearchResult {
+	// Definice vyhledavaciho pozadavku
 	searchRequest := ldap.NewSearchRequest(
 		l.baseDN, // Zakladni DN
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		l.groupFilter,  // Filtr pro vyhledani skupin
-		[]string{"cn"}, // Atributy, které chceme ziskat (napr. common name)
+		l.groupFilter, // Filtr pro vyhledani skupin
+		nil,
 		nil,
 	)
 
-	// Provest hledani
+	// Provedeme vyhledani v LDAPu
 	result, err := l.conn.Search(searchRequest)
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
 
-	// Extrahovani nazvu skupin
-	var groups []string
-	for _, entry := range result.Entries {
-		groups = append(groups, entry.GetAttributeValue("cn"))
-	}
-
-	return groups
+	return result
 }
 
-func (l *LDAPGroupSyncer) GetMembers(group string) []string {
-	// Implementujte kód pro získání členů skupiny z LDAP.
-	return []string{"member1", "member2"}
+func (l *LDAPGroupSyncer) GetMembers() *ldap.SearchResult {
+	searchRequest := ldap.NewSearchRequest(
+		l.baseDN, // Zakladni DN
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		"(cn=*)",            // Filtr pro vyhledani skupin
+		[]string{"members"}, // Atributy, které chceme ziskat (napr. common name)
+		nil,
+	)
+	// Provedeme vyhledani v LDAPu
+	result, err := l.conn.Search(searchRequest)
+	if err != nil {
+		log.Fatalf("ERROR: %s", err)
+	}
+
+	return result
 }

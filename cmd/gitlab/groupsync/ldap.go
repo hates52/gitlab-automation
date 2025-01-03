@@ -59,14 +59,16 @@ func init() {
 }
 
 func LdapGroupSyncCmd(cmd *cobra.Command, args []string) {
-	groupSyncer, err := groupsync.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
+	client, err := groupsync.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
 	if err != nil {
 		log.Fatalf("ERROR: %v", err)
 	}
 
-	groups := groupSyncer.GetGroups()
-	for _, group := range groups {
-		fmt.Println(group)
+	groups := client.GetGroups()
+	client.Close()
+
+	for _, group := range groups.Entries {
+		fmt.Println(group.DN)
 	}
-	groupSyncer.Close()
+
 }
