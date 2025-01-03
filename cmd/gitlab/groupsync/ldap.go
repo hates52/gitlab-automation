@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 
 	gitlab "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
-	groupsync "github.com/Cloud-for-You/devops-cli/pkg/gitlab/groupsync"
+	ldap "github.com/Cloud-for-You/devops-cli/pkg/gitlab/groupsync/ldap"
 	client "gitlab.com/gitlab-org/api/client-go"
 )
 
@@ -62,13 +62,13 @@ func init() {
 }
 
 func ldapGroupSync(cmd *cobra.Command, args []string) {
-	groupsync, err := groupsync.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
+	ldap, err := ldap.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
 	if err != nil {
 		log.Fatalf("ERROR: %v", err)
 	}
-	defer groupsync.Close()
+	defer ldap.Close()
 
-	groups, err := groupsync.GetGroups()
+	groups, err := ldap.GetLdapGroups()
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
 	}
@@ -84,9 +84,9 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
-
+	
 	for _, group := range groups.Entries {
-		// Zalozime skupinu v GitLabu
+		groupName := group.GetAttributeValue("cn")
 		gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
 		gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
 
@@ -94,25 +94,41 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 			log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 		}
 
+    // Ziskame seznam uzivatelu, kteri maji byt v dane skupine nastaveni
+		ldapMembers, err := ldap.ListLdapGroupMembers(groupName)
+		if err != nil {
+      fmt.Printf("Chyba v ziskavani clenu skupiny %s z LDAPu.\n", groupName)
+		}
+		fmt.Println(ldapMembers)
+
+    
+    gitlabMembers, err := gitlab.ListGitlabGroupMembers(client, groupName)
+		if err != nil {
+      fmt.Printf("Chyba v ziskavani clenu skupiny %s z LDAPu.\n", groupName)
+		}
+		fmt.Println(gitlabMembers)
+
 		// Overime zda skupina podle nazvu v GitLabu existuje a pokud ano, pouze do ni membery vlozime
-		result, err := gitlab.GetGroup(client, group.GetAttributeValue("cn"))
+		// a pokracujeme dalsi skupinou
+		result, err := gitlab.GetGroup(client, groupName)
 		if err == nil {
 			fmt.Printf("Group %v exist.\n", result.Name)
 			continue
 		}
 
-		_, response, err := gitlab.CreateGroup(client, group.GetAttributeValue("cn"), "", "private")
+    // Zalozime skupinu v GitLabu a vlozime do ni membery
+		_, response, err := gitlab.CreateGroup(client, groupName, "", "private")
 		if err != nil {
 			if response != nil && response.StatusCode == http.StatusConflict {
-				fmt.Printf("Group '%s' is exists.\n", group.GetAttributeValue("cn"))
+				fmt.Printf("Group '%s' is exists.\n", groupName)
 			} else {
-				fmt.Printf("Failed to create GitLab group '%s': %v\n", group.GetAttributeValue("cn"), err)
+				fmt.Printf("Failed to create GitLab group '%s': %v\n", groupName, err)
 			}
 
 		}
 
 		// Pro skupinu ziskame membery a vlozime je do skupiny
-		//members, err := groupsync.GetMembers(group.DN)
+		//members, err := groupsync.ListLdapGroupMembers(group.DN)
 		//if err != nil {
 		//	log.Fatalf("ERROR: %s", err)
 		//}
@@ -120,5 +136,4 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 		//	fmt.Printf("  - %s\n", member)
 		//}
 	}
-
 }

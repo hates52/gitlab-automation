@@ -36,13 +36,42 @@ func ListGroups(client *gitlab.Client) ([]*gitlab.Group, error) {
 	return allGroups, nil
 }
 
+func ListGitlabGroupMembers(client *gitlab.Client, groupId string) ([]*gitlab.GroupMember, error) {
+	var allMembers []*gitlab.GroupMember
+	page := 1
+	perPage := 20
+
+	for {
+		options := &gitlab.ListGroupMembersOptions{
+			ListOptions: gitlab.ListOptions{
+				Page:    page,
+				PerPage: perPage,
+			},
+		}
+
+		groups, res, err := client.Groups.ListGroupMembers(groupId, options)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve groupMembers: %v", err)
+		}
+
+		allMembers = append(allMembers, groups...)
+
+		if res.CurrentPage >= res.TotalPages {
+			break
+		}
+
+		page++
+	}
+
+	return allMembers, nil
+}
+
 func GetGroup(client *gitlab.Client, groupName string) (*gitlab.Group, error) {
 	group, _, err := client.Groups.GetGroup(groupName, nil)
 	if err != nil {
 		return nil, err
 	}
 	return group, nil
-
 }
 
 func CreateGroup(client *gitlab.Client, groupName string, groupDescription string, visibility string) (*gitlab.Group, *gitlab.Response, error) {

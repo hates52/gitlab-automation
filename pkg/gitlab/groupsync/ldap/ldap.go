@@ -1,4 +1,4 @@
-package groupsync
+package ldap
 
 import (
 	"fmt"
@@ -47,12 +47,12 @@ func (l *LDAPGroupSyncer) Close() {
 	}
 }
 
-func (l *LDAPGroupSyncer) GetGroups() (*ldap.SearchResult, error) {
+func (l *LDAPGroupSyncer) GetLdapGroups() (*ldap.SearchResult, error) {
 	// Definice vyhledavaciho pozadavku
 	searchRequest := ldap.NewSearchRequest(
 		l.baseDN, // Zakladni DN
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		l.groupFilter, // Filtr pro vyhledani skupin
+		l.groupFilter, // Filtr pro vyhledani
 		nil,
 		nil,
 	)
@@ -66,12 +66,12 @@ func (l *LDAPGroupSyncer) GetGroups() (*ldap.SearchResult, error) {
 	return result, nil
 }
 
-func (l *LDAPGroupSyncer) GetMembers(groupDN string) ([]string, error) {
+func (l *LDAPGroupSyncer) ListLdapGroupMembers(groupDN string) ([]string, error) {
 	// Definice vyhledavaciho pozadavku
 	searchRequest := ldap.NewSearchRequest(
 		groupDN, // Zakladni DN
 		ldap.ScopeBaseObject, ldap.NeverDerefAliases, 0, 0, false,
-		"(objectClass=*)", // Filtr pro vyhledani skupin
+		l.groupFilter, // Filtr pro vyhledani
 		[]string{"member"},
 		nil,
 	)
