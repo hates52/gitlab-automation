@@ -99,7 +99,7 @@ func listGroups(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
-	groups, err := gitlab.GetGroups(client)
+	groups, err := gitlab.ListGroups(client)
 	if err != nil {
 		log.Fatalf("Error retrieving projects :%v", err)
 	}

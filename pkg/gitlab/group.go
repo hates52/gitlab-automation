@@ -6,7 +6,7 @@ import (
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
-func GetGroups(client *gitlab.Client) ([]*gitlab.Group, error) {
+func ListGroups(client *gitlab.Client) ([]*gitlab.Group, error) {
 	var allGroups []*gitlab.Group
 	page := 1
 	perPage := 20
