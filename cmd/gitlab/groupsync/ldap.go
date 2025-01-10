@@ -3,11 +3,11 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	common "github.com/Cloud-for-You/devops-cli/pkg"
 	gitlab "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
 	ldap "github.com/Cloud-for-You/devops-cli/pkg/gitlab/groupsync/ldap"
 	client "gitlab.com/gitlab-org/api/client-go"
@@ -84,7 +84,7 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
-	
+
 	for _, group := range groups.Entries {
 		groupName := group.GetAttributeValue("cn")
 		gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
@@ -94,38 +94,53 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 			log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 		}
 
-    // Ziskame seznam uzivatelu, kteri maji byt v dane skupine nastaveni
-		ldapMembers, err := ldap.ListLdapGroupMembers(groupName)
+		// Ziskame seznam uzivatelu, kteri maji byt v dane skupine nastaveni
+		lm, err := ldap.ListLdapGroupMembers(group.DN)
 		if err != nil {
-      fmt.Printf("Chyba v ziskavani clenu skupiny %s z LDAPu.\n", groupName)
+			log.Fatalf("Error list Ldap group members: %v", err)
 		}
-		fmt.Println(ldapMembers)
+		var ldapMembers []common.Member
+		for _, m := range lm {
+			ldapMembers = append(ldapMembers, common.Member{Name: m})
+		}
 
-    
-    gitlabMembers, err := gitlab.ListGitlabGroupMembers(client, groupName)
+		gm, err := gitlab.ListGitlabGroupMembers(client, groupName)
 		if err != nil {
-      fmt.Printf("Chyba v ziskavani clenu skupiny %s z LDAPu.\n", groupName)
+			log.Fatalf("Error list GitLab group members: %v", err)
 		}
-		fmt.Println(gitlabMembers)
+		var gitlabMembers []common.Member
+		for _, m := range gm {
+			if m.Username != "root" {
+				gitlabMembers = append(gitlabMembers, common.Member{Name: m.Username})
+			}
+		}
 
-		// Overime zda skupina podle nazvu v GitLabu existuje a pokud ano, pouze do ni membery vlozime
+		// Overime zda skupina podle nazvu v GitLabu existuje a pokud ano, pouze ji sesynchronizujeme
 		// a pokracujeme dalsi skupinou
-		result, err := gitlab.GetGroup(client, groupName)
+		group, err := gitlab.GetGroup(client, groupName)
 		if err == nil {
-			fmt.Printf("Group %v exist.\n", result.Name)
+			fmt.Printf("Synchronizing members of an existing GitLab group [%s]\n", group.Name)
+
+			missing, extra := common.CompareMembers(gitlabMembers, ldapMembers)
+			for _, m := range missing {
+				fmt.Printf("Add members %s to GitLab group %s\n", m.Name, group.Name)
+			}
+			for _, m := range extra {
+				fmt.Printf("Remove member %s from GitLab group %s\n", m.Name, group.Name)
+			}
+
 			continue
 		}
 
-    // Zalozime skupinu v GitLabu a vlozime do ni membery
-		_, response, err := gitlab.CreateGroup(client, groupName, "", "private")
-		if err != nil {
-			if response != nil && response.StatusCode == http.StatusConflict {
-				fmt.Printf("Group '%s' is exists.\n", groupName)
-			} else {
-				fmt.Printf("Failed to create GitLab group '%s': %v\n", groupName, err)
-			}
-
-		}
+		// Zalozime skupinu v GitLabu a vlozime do ni membery
+		//_, response, err := gitlab.CreateGroup(client, groupName, "", "private")
+		//if err != nil {
+		//	if response != nil && response.StatusCode == http.StatusConflict {
+		//		fmt.Printf("Group '%s' is exists.\n", groupName)
+		//	} else {
+		//		fmt.Printf("Failed to create GitLab group '%s': %v\n", groupName, err)
+		//	}
+		//}
 
 		// Pro skupinu ziskame membery a vlozime je do skupiny
 		//members, err := groupsync.ListLdapGroupMembers(group.DN)

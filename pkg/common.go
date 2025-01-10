@@ -1,35 +1,43 @@
 package common
 
+import "fmt"
+
 type Member struct {
 	Name string
 }
 
-func CompareMembers(currentMembers, desiredMembers []Member) (missing, extra []Member) {
-  // Vytvorime mapy pro rychle vyhledavani
-	currentSet := make(map[string]struct{})
-	desiredSet := make(map[string]struct{})
+// currentMembers is members in GitLab group
+// desiredMembers is members in SRC group (LDAP, Azure, File, etc...)
+// missing: User is LDAP but not in GitLab (Create)
+// extra: User in GitLab but not in LDAP (Delete)
+func CompareMembers(gitlabMembers, sourceMembers []Member) (missing, extra []Member) {
+	// Vytvorime mapy pro rychle vyhledavani
+	gitlabSet := make(map[string]struct{})
+	srcSet := make(map[string]struct{})
 
-	// Naplnime mapy
-	for _, m := range currentMembers {
-		currentSet[m.Name] = struct{}{}
+	// Naplnime mapu
+	for _, m := range gitlabMembers {
+		gitlabSet[m.Name] = struct{}{}
 	}
-	for _, m := range desiredMembers {
-		desiredSet[m.Name] = struct{}{}
+	for _, m := range sourceMembers {
+		srcSet[m.Name] = struct{}{}
 	}
-  
+
 	// Najdeme chybejici cleny
-	for _, m := range desiredMembers {
-		if _, exists := currentSet[m.Name]; !exists {
+	for _, m := range gitlabMembers {
+		if _, exists := gitlabSet[m.Name]; !exists {
 			missing = append(missing, m)
 		}
 	}
+	fmt.Printf("Created: %v\n", missing)
 
 	// Najdeme prebyvajici cleny
-	for _, m := range currentMembers {
-		if _, exists := desiredSet[m.Name]; !exists {
+	for _, m := range gitlabMembers {
+		if _, exists := srcSet[m.Name]; !exists {
 			extra = append(extra, m)
 		}
 	}
+	fmt.Printf("Deleted: %v\n", extra)
 
-  return missing, extra
+	return missing, extra
 }
