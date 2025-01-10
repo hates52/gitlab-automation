@@ -4,18 +4,13 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	client "gitlab.com/gitlab-org/api/client-go"
 
 	group "github.com/Cloud-for-You/devops-cli/cmd/gitlab/group"
 	groupsync "github.com/Cloud-for-You/devops-cli/cmd/gitlab/groupsync"
-	repository "github.com/Cloud-for-You/devops-cli/cmd/gitlab/repository"
-
-	gitlab "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
+	list "github.com/Cloud-for-You/devops-cli/cmd/gitlab/list"
+	project "github.com/Cloud-for-You/devops-cli/cmd/gitlab/project"
 )
 
 var (
@@ -31,27 +26,11 @@ var GitlabCmd = &cobra.Command{
 	},
 }
 
-// Get all Project name and ID from Gitlab
-var ListProjectsCmd = &cobra.Command{
-	Use:   "listProjects",
-	Short: "Get all GitLab project",
-	Run:   listProjects,
-}
-
-// Get all Project name and ID from Gitlab
-var ListGroupsCmd = &cobra.Command{
-	Use:   "listGroups",
-	Short: "List all GitLab groups",
-	Run:   listGroups,
-}
-
 func init() {
-	GitlabCmd.AddCommand(repository.RepositoryCmd)
+	GitlabCmd.AddCommand(list.ListCmd)
+	GitlabCmd.AddCommand(project.RepositoryCmd)
 	GitlabCmd.AddCommand(group.GroupCmd)
 	GitlabCmd.AddCommand(groupsync.GroupSyncCmd)
-
-	GitlabCmd.AddCommand(ListProjectsCmd)
-	GitlabCmd.AddCommand(ListGroupsCmd)
 
 	// FLAGS
 	GitlabCmd.PersistentFlags().StringVar(&gitlabUrl, "gitlabUrl", "", "GitLab URL adresses")
@@ -61,50 +40,4 @@ func init() {
 
 	GitlabCmd.MarkPersistentFlagRequired("gitlabUrl")
 	GitlabCmd.MarkPersistentFlagRequired("gitlabToken")
-}
-
-func listProjects(cmd *cobra.Command, args []string) {
-	gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
-	gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
-
-	if gitlabToken == "" || gitlabUrl == "" {
-		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
-	}
-
-	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
-	if err != nil {
-		log.Fatalf("Failed to create GitLab client: %v", err)
-	}
-
-	projects, err := gitlab.GetProjects(client)
-	if err != nil {
-		log.Fatalf("Error retrieving projects :%v", err)
-	}
-
-	for _, project := range projects {
-		fmt.Printf("ID: %d, Name: %s\n", project.ID, project.Name)
-	}
-}
-
-func listGroups(cmd *cobra.Command, args []string) {
-	gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
-	gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
-
-	if gitlabToken == "" || gitlabUrl == "" {
-		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
-	}
-
-	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
-	if err != nil {
-		log.Fatalf("Failed to create GitLab client: %v", err)
-	}
-
-	groups, err := gitlab.ListGroups(client)
-	if err != nil {
-		log.Fatalf("Error retrieving projects :%v", err)
-	}
-
-	for _, group := range groups {
-		fmt.Printf("ID: %d, Name: %s\n", group.ID, group.Name)
-	}
 }
