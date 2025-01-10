@@ -23,15 +23,15 @@ func CompareMembers(gitlabMembers, sourceMembers []Member) (missing, extra []Mem
 		srcSet[m.Name] = struct{}{}
 	}
 
-	// Najdeme chybejici cleny
-	for _, m := range gitlabMembers {
+	// Najdeme chybejici cleny (v source, ale ne v GitLab)
+	for _, m := range sourceMembers {
 		if _, exists := gitlabSet[m.Name]; !exists {
 			missing = append(missing, m)
 		}
 	}
 	fmt.Printf("Created: %v\n", missing)
 
-	// Najdeme prebyvajici cleny
+	// Najdeme prebyvajici cleny (v GitLab, ale ne v source)
 	for _, m := range gitlabMembers {
 		if _, exists := srcSet[m.Name]; !exists {
 			extra = append(extra, m)

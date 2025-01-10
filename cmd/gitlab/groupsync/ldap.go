@@ -62,22 +62,38 @@ func init() {
 }
 
 func ldapGroupSync(cmd *cobra.Command, args []string) {
-	ldap, err := ldap.NewLDAPGroupSyncer(ldapHost, ldapBindDN, ldapPassword, ldapSearchBase, ldapFilter)
-	if err != nil {
-		log.Fatalf("ERROR: %v", err)
-	}
-	defer ldap.Close()
-
-	groups, err := ldap.GetLdapGroups()
-	if err != nil {
-		log.Fatalf("ERROR: %s", err)
-	}
+	ldapHost, _ := cmd.Flags().GetString("ldapHost")
+	ldapBindDN, _ := cmd.Flags().GetString("ldapBindDN")
+	ldapPassword, _ := cmd.Flags().GetString("ldapPassword")
+	ldapSearchBase, _ := cmd.Flags().GetString("ldapSearchBase")
+	ldapGroupFilter, _ := cmd.Flags().GetString("ldapGroupFilter")
 
 	gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
 	gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
 
+	// Overeni, ze mame gitlabURL a gitlabToken
 	if gitlabToken == "" || gitlabUrl == "" {
 		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
+	}
+
+	ldapConfig := ldap.LDAPConfig{
+		Host:     ldapHost,
+		BindDN:   ldapBindDN,
+		Password: ldapPassword,
+		BaseDN:   ldapSearchBase,
+	}
+	connector, err := ldap.NewLDAPConnector(ldapConfig)
+	if err != nil {
+		log.Fatalf("ERROR: %v", err)
+	}
+	defer connector.Close()
+
+	groupSyncer := ldap.NewLDAPGroupSyncer(connector, ldapGroupFilter)
+
+	// Nacteni skupin z LDAPu
+	groups, err := groupSyncer.GetLdapGroups()
+	if err != nil {
+		log.Fatalf("ERROR: %s", err)
 	}
 
 	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
@@ -85,33 +101,35 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
+	// Iterace pres vsechny LDAP skupiny
 	for _, group := range groups.Entries {
 		groupName := group.GetAttributeValue("cn")
-		gitlabToken, _ := cmd.Flags().GetString("gitlabToken")
-		gitlabUrl, _ := cmd.Flags().GetString("gitlabUrl")
 
 		if gitlabToken == "" || gitlabUrl == "" {
 			log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 		}
 
-		// Ziskame seznam uzivatelu, kteri maji byt v dane skupine nastaveni
-		lm, err := ldap.ListLdapGroupMembers(group.DN)
+		// Ziskani seznamu clenu skupiny z LDAPu
+		ldapMembersDNs, err := groupSyncer.ListLdapGroupMemberDNs(group.DN)
 		if err != nil {
-			log.Fatalf("Error list Ldap group members: %v", err)
-		}
-		var ldapMembers []common.Member
-		for _, m := range lm {
-			ldapMembers = append(ldapMembers, common.Member{Name: m})
+			log.Fatalf("Error listing Ldap group members: %v", err)
 		}
 
-		gm, err := gitlab.ListGitlabGroupMembers(client, groupName)
-		if err != nil {
-			log.Fatalf("Error list GitLab group members: %v", err)
+		var groupMembers []common.Member
+		for _, dn := range ldapMembersDNs {
+			groupMembers = append(groupMembers, common.Member{Name: dn})
 		}
+
+		// Ziskani clenu skupiny z GitLab
+		gitlabMembersRaw, err := gitlab.ListGitlabGroupMembers(client, groupName)
+		if err != nil {
+			log.Fatalf("Error listing GitLab group members: %v", err)
+		}
+
 		var gitlabMembers []common.Member
-		for _, m := range gm {
-			if m.Username != "root" {
-				gitlabMembers = append(gitlabMembers, common.Member{Name: m.Username})
+		for _, member := range gitlabMembersRaw {
+			if member.Username != "root" {
+				gitlabMembers = append(gitlabMembers, common.Member{Name: member.Username})
 			}
 		}
 
@@ -121,7 +139,7 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 		if err == nil {
 			fmt.Printf("Synchronizing members of an existing GitLab group [%s]\n", group.Name)
 
-			missing, extra := common.CompareMembers(gitlabMembers, ldapMembers)
+			missing, extra := common.CompareMembers(gitlabMembers, groupMembers)
 			for _, m := range missing {
 				fmt.Printf("Add members %s to GitLab group %s\n", m.Name, group.Name)
 			}
