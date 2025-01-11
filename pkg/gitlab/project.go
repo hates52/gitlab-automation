@@ -6,7 +6,7 @@ import (
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
-func GetProjects(client *gitlab.Client) ([]*gitlab.Project, error) {
+func ListProjects(client *gitlab.Client) ([]*gitlab.Project, error) {
 	var allProjects []*gitlab.Project
 	page := 1
 	perPage := 20

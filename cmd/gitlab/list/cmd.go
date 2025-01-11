@@ -50,7 +50,7 @@ func listProjects(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
-	projects, err := gitlab.GetProjects(client)
+	projects, err := gitlab.ListProjects(client)
 	if err != nil {
 		log.Fatalf("Error retrieving projects :%v", err)
 	}
@@ -82,3 +82,4 @@ func listGroups(cmd *cobra.Command, args []string) {
 		fmt.Printf("ID: %d, Name: %s\n", group.ID, group.Name)
 	}
 }
+
