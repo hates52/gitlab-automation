@@ -101,6 +101,7 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
+	gitlabWhoami, err := gitlab.Whoami(client)
 
 	// Iterace pres vsechny LDAP skupiny
 	for _, group := range groups.Entries {
@@ -138,7 +139,7 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 
 		var gitlabMembers []common.Member
 		for _, member := range gitlabMembersRaw {
-			if member.Username != "root" {
+			if member.Username != "root" && (gitlabWhoami == nil || *gitlabWhoami != member.Username) {
 				gitlabMembers = append(gitlabMembers, common.Member{Name: member.Username})
 			}
 		}
