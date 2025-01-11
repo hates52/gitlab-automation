@@ -3,10 +3,11 @@ package cmd
 import (
 	"fmt"
 	"log"
+	"net/http"
 
+	gitlab "github.com/Cloud-for-You/devops-cli/pkg/gitlab"
 	"github.com/spf13/cobra"
-
-	gitlab "gitlab.com/gitlab-org/api/client-go"
+	client "gitlab.com/gitlab-org/api/client-go"
 )
 
 var (
@@ -41,26 +42,22 @@ func createRepository(cmd *cobra.Command, args []string) {
 		log.Fatalf("Gitlab token and URL must be provided using the persistent flags --gitlabToken and --gitlabUrl")
 	}
 
-	client, err := gitlab.NewClient(gitlabToken, gitlab.WithBaseURL(gitlabUrl))
+	client, err := client.NewClient(gitlabToken, client.WithBaseURL(gitlabUrl))
 	if err != nil {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
-	projectOptions := &gitlab.CreateProjectOptions{
-		Name:        gitlab.Ptr(projectName),
-		Path:        gitlab.Ptr(projectName),
-		Description: gitlab.Ptr(projectDescription),
-		NamespaceID: gitlab.Ptr(namespaceID),
-		Visibility:  gitlab.Ptr(gitlab.VisibilityValue(visibility)),
-	}
-
-	project, _, err := client.Projects.CreateProject(projectOptions)
+	result, res, err := gitlab.CreateProject(client, projectName, namespaceID, projectDescription, visibility)
 	if err != nil {
-		log.Fatalf("Failed to create GitLab repository: %v", err)
+		if res != nil && res.StatusCode == http.StatusConflict {
+			fmt.Printf("Project '%s' is exists.\n", projectName)
+		} else {
+			fmt.Printf("Failed to create GitLab project '%s': %v\n", projectName, err)
+		}
+	} else {
+		fmt.Printf("Project created successfully\n")
+		fmt.Printf("Name: %s\n", result.Name)
+		fmt.Printf("Description: %s\n", result.Description)
+		fmt.Printf("Web URL: %s\n", result.WebURL)
 	}
-
-	fmt.Printf("Repository created successfully\n")
-	fmt.Printf("Name: %s\n", project.Name)
-	fmt.Printf("Description: %s\n", project.Description)
-	fmt.Printf("Web URL: %s\n", project.WebURL)
 }
