@@ -56,25 +56,6 @@ func NewLDAPGroupSyncer(connector *LDAPConnector, groupFilter string) *LDAPGroup
 	}
 }
 
-func (s *LDAPGroupSyncer) GetLdapGroups() (*ldap.SearchResult, error) {
-	// Definice vyhledavaciho pozadavku
-	searchRequest := ldap.NewSearchRequest(
-		s.connector.baseDN, // Zakladni DN
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		s.groupFilter, // Filtr pro vyhledani
-		nil,
-		nil,
-	)
-
-	// Provedeme vyhledani v LDAPu
-	result, err := s.connector.conn.Search(searchRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
 func (s *LDAPGroupSyncer) ListLdapGroupMemberDNs(groupDN string) ([]string, error) {
 	// Definice vyhledavaciho pozadavku
 	searchRequest := ldap.NewSearchRequest(
@@ -98,4 +79,46 @@ func (s *LDAPGroupSyncer) ListLdapGroupMemberDNs(groupDN string) ([]string, erro
 	members := result.Entries[0].GetAttributeValues("member")
 
 	return members, nil
+}
+
+func (c *LDAPConnector) GetLdapUserAttributes(userDN string, attributes []string) (*ldap.SearchResult, error) {
+	// Definice vyhledavaciho pozadavku
+	searchRequest := ldap.NewSearchRequest(
+		userDN, // Zakladni DN
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		"(cn=*)", // Filtr pro vyhledani
+		attributes,
+		nil,
+	)
+
+	// Provedeme vyhledani v LDAPu
+	result, err := c.conn.Search(searchRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(result.Entries) == 0 {
+		return nil, fmt.Errorf("no results found for user %s", userDN)
+	}
+
+	return result, nil
+}
+
+func (s *LDAPGroupSyncer) GetLdapGroups() (*ldap.SearchResult, error) {
+	// Definice vyhledavaciho pozadavku
+	searchRequest := ldap.NewSearchRequest(
+		s.connector.baseDN, // Zakladni DN
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		s.groupFilter, // Filtr pro vyhledani
+		nil,
+		nil,
+	)
+
+	// Provedeme vyhledani v LDAPu
+	result, err := s.connector.conn.Search(searchRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

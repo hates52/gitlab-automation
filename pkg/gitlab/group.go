@@ -90,3 +90,108 @@ func CreateGroup(client *gitlab.Client, groupName string, groupDescription strin
 
 	return group, res, nil
 }
+
+// AddUserToGroup adds a user to a group
+func AddMemberToGroup(client *gitlab.Client, groupname string, username string) error {
+	// Na zaklade jmena skupiny ziskame jeji ID
+	groups, _, err := client.Groups.ListGroups(&gitlab.ListGroupsOptions{
+		Search: &groupname,
+	})
+	if err != nil {
+		return fmt.Errorf("error retrieving group: %w", err)
+	}
+
+	var groupID int
+	for _, group := range groups {
+		if group.Name == groupname {
+			groupID = group.ID
+			break
+		}
+	}
+
+	if groupID == 0 {
+		return fmt.Errorf("group '%s' not found", groupname)
+	}
+
+	// Na zaklade jmena uzivatele ziskame jeho ID
+	users, _, err := client.Users.ListUsers(&gitlab.ListUsersOptions{
+		Username: &username,
+	})
+	if err != nil {
+		return fmt.Errorf("error retrieving user: %w", err)
+	}
+
+	var userID int
+	for _, user := range users {
+		if user.Name == username {
+			userID = user.ID
+			break
+		}
+	}
+
+	if userID == 0 {
+		return fmt.Errorf("user '%s' not found", username)
+	}
+
+	// Pridame uzivatele do skupiny
+	_, _, err = client.GroupMembers.AddGroupMember(groupID, &gitlab.AddGroupMemberOptions{
+		UserID:      &userID,
+		AccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+	})
+	if err != nil {
+		return fmt.Errorf("error adding user to group: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveUserFromGroup removes a user from a group
+func RemoveUserFromGroup(client *gitlab.Client, groupname string, username string) error {
+	// Retrieve group ID by name
+	groups, _, err := client.Groups.ListGroups(&gitlab.ListGroupsOptions{
+		Search: &groupname,
+	})
+	if err != nil {
+		return fmt.Errorf("error retrieving group: %w", err)
+	}
+
+	var groupID int
+	for _, group := range groups {
+		if group.Name == groupname {
+			groupID = group.ID
+			break
+		}
+	}
+
+	if groupID == 0 {
+		return fmt.Errorf("group '%s' not found", groupname)
+	}
+
+	// Retrieve user ID by username
+	users, _, err := client.Users.ListUsers(&gitlab.ListUsersOptions{
+		Username: &username,
+	})
+	if err != nil {
+		return fmt.Errorf("error retrieving user: %w", err)
+	}
+
+	var userID int
+	for _, user := range users {
+		if user.Username == username {
+			userID = user.ID
+			break
+		}
+	}
+
+	if userID == 0 {
+		return fmt.Errorf("user '%s' not found", username)
+	}
+
+	// Remove user from group
+	_, err = client.GroupMembers.RemoveGroupMember(groupID, userID, nil)
+	if err != nil {
+		return fmt.Errorf("error removing user from group: %w", err)
+	}
+
+	return nil
+}
