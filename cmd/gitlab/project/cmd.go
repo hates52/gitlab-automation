@@ -5,8 +5,8 @@ import (
 )
 
 var RepositoryCmd = &cobra.Command{
-	Use:                   "repository",
-	Short:                 "Managing GitLab repository",
+	Use:                   "project",
+	Short:                 "Managing GitLab project",
 	DisableFlagsInUseLine: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
