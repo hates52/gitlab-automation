@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"fmt"
+	"strings"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
@@ -92,7 +93,26 @@ func CreateGroup(client *gitlab.Client, groupName string, groupDescription strin
 }
 
 // AddUserToGroup adds a user to a group
-func AddMemberToGroup(client *gitlab.Client, groupname string, username string) error {
+func AddMemberToGroup(client *gitlab.Client, groupname string, username string, accessLevel *gitlab.AccessLevelValue) error {
+	// V pripade, ze nepredavame accessLevel, vyresime jeho nastaveni pres jmeno skupiny, ktera musi jmeno obsahovat
+	// Podporovane retezce pro role
+	// Developer -> 30
+	// Maintainer -> 40
+	// Pokud neni ve skupine match, nebudeme ji synchronizovat a vypiseme chybu
+	if accessLevel == nil {
+		lowerGroupName := strings.ToLower(groupname)
+		switch {
+		case strings.Contains(lowerGroupName, "maintainer"):
+			defaultLevel := gitlab.MaintainerPermissions
+			accessLevel = &defaultLevel
+		case strings.Contains(lowerGroupName, "developer"):
+			defaultLevel := gitlab.DeveloperPermissions
+			accessLevel = &defaultLevel
+		default:
+			return fmt.Errorf("unsupported role in groupname: %s", groupname)
+		}
+	}
+
 	// Na zaklade jmena skupiny ziskame jeji ID
 	groups, _, err := client.Groups.ListGroups(&gitlab.ListGroupsOptions{
 		Search: &groupname,
@@ -123,7 +143,7 @@ func AddMemberToGroup(client *gitlab.Client, groupname string, username string) 
 
 	var userID int
 	for _, user := range users {
-		if user.Name == username {
+		if user.Username == username {
 			userID = user.ID
 			break
 		}
@@ -136,7 +156,7 @@ func AddMemberToGroup(client *gitlab.Client, groupname string, username string) 
 	// Pridame uzivatele do skupiny
 	_, _, err = client.GroupMembers.AddGroupMember(groupID, &gitlab.AddGroupMemberOptions{
 		UserID:      &userID,
-		AccessLevel: gitlab.Ptr(gitlab.DeveloperPermissions),
+		AccessLevel: accessLevel,
 	})
 	if err != nil {
 		return fmt.Errorf("error adding user to group: %w", err)
