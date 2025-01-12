@@ -163,6 +163,7 @@ func AddMemberToGroup(client *gitlab.Client, groupname string, username string, 
 		return fmt.Errorf("error adding user to group: %w", err)
 	}
 
+	fmt.Printf("User '%s' successfully added to the group '%s'.\n", username, groupname)
 	return nil
 }
 
@@ -214,5 +215,6 @@ func RemoveUserFromGroup(client *gitlab.Client, groupname string, username strin
 		return fmt.Errorf("error removing user from group: %w", err)
 	}
 
+	fmt.Printf("User '%s' successfully remove from group '%s'.\n", username, groupname)
 	return nil
 }
