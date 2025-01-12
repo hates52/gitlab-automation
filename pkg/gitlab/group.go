@@ -22,8 +22,7 @@ func ListGroups(client *gitlab.Client) ([]*gitlab.Group, error) {
 
 		groups, res, err := client.Groups.ListGroups(options)
 		if err != nil {
-			fmt.Printf("failed to retrieve groups: %v", err)
-			return nil, nil
+			return nil, fmt.Errorf("failed to retrieve groups: %v", err)
 		}
 
 		allGroups = append(allGroups, groups...)
@@ -131,7 +130,7 @@ func AddMemberToGroup(client *gitlab.Client, groupname string, username string, 
 	}
 
 	if groupID == 0 {
-		return fmt.Errorf("group '%s' not found", groupname)
+		return fmt.Errorf("group '%s' not found in GitLab", groupname)
 	}
 
 	// Na zaklade jmena uzivatele ziskame jeho ID
@@ -151,7 +150,7 @@ func AddMemberToGroup(client *gitlab.Client, groupname string, username string, 
 	}
 
 	if userID == 0 {
-		fmt.Printf("user '%s' not found\n", username)
+		fmt.Printf("user '%s' not found in GitLab\n", username)
 		return nil
 	}
 

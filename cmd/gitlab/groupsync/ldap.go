@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -135,7 +134,16 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 		// Ziskani clenu skupiny z GitLab
 		gitlabMembersRaw, err := gitlab.ListGitlabGroupMembers(client, groupName)
 		if err != nil {
-			log.Fatalf("Error listing GitLab group members: %v", err)
+			// Zalozime skupinu v GitLabu a vlozime do ni membery
+			_, response, err := gitlab.CreateGroup(client, groupName, "", "private")
+			if err != nil {
+				if response != nil && response.StatusCode == http.StatusConflict {
+					fmt.Printf("Group '%s' is exists.\n", groupName)
+				} else {
+					fmt.Printf("Failed to create GitLab group '%s': %v\n", groupName, err)
+				}
+			}
+			fmt.Printf("Error listing GitLab group members: %v\n", err)
 		}
 
 		var gitlabGroupMembers []common.Member
@@ -150,16 +158,16 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 		group, err := gitlab.GetGroup(client, groupName)
 
 		if err != nil {
-			// Zalozime skupinu v GitLabu a vlozime do ni membery
-			_, response, err := gitlab.CreateGroup(client, groupName, "", "private")
-			if err != nil {
-				if response != nil && response.StatusCode == http.StatusConflict {
-					fmt.Printf("Group '%s' is exists.\n", groupName)
-				} else {
-					fmt.Printf("Failed to create GitLab group '%s': %v\n", groupName, err)
-					os.Exit(1)
-				}
-			}
+			//			// Zalozime skupinu v GitLabu a vlozime do ni membery
+			//			_, response, err := gitlab.CreateGroup(client, groupName, "", "private")
+			//			if err != nil {
+			//				if response != nil && response.StatusCode == http.StatusConflict {
+			//					fmt.Printf("Group '%s' is exists.\n", groupName)
+			//				} else {
+			//					fmt.Printf("Failed to create GitLab group '%s': %v\n", groupName, err)
+			//					os.Exit(1)
+			//				}
+			//			}
 		}
 
 		fmt.Printf("Synchronizing members of an existing GitLab group [%s]\n", group.Name)
