@@ -37,7 +37,7 @@ func ListProjects(client *gitlab.Client) ([]*gitlab.Project, error) {
 	return allProjects, nil
 }
 
-func CreateProject(client *gitlab.Client, projectName string, namespaceID int, projectDescription string, visibility string) (*gitlab.Project, *gitlab.Response, error) {
+func CreateProject(client *gitlab.Client, projectName string, namespaceID int, projectDescription string, visibility string, maintainerGroupName *string, developerGroupName *string) (*gitlab.Project, *gitlab.Response, error) {
 
   projectOptions := &gitlab.CreateProjectOptions{
 	  Name:        gitlab.Ptr(projectName),

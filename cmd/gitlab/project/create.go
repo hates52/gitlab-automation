@@ -51,7 +51,7 @@ func createRepository(cmd *cobra.Command, args []string) {
 		log.Fatalf("Failed to create GitLab client: %v", err)
 	}
 
-	result, res, err := gitlab.CreateProject(client, projectName, namespaceID, projectDescription, visibility)
+	result, res, err := gitlab.CreateProject(client, projectName, namespaceID, projectDescription, visibility, &maintainerGroupName, &developerGroupName) 
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusConflict {
 			fmt.Printf("Project '%s' is exists.\n", projectName)
