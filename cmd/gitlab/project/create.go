@@ -15,6 +15,8 @@ var (
 	projectDescription string
 	namespaceID        int
 	visibility         string
+	maintainerGroupName string
+  developerGroupName string	
 )
 
 // Create GitLab repository
@@ -30,6 +32,8 @@ func init() {
 	CreateCmd.Flags().StringVar(&projectDescription, "description", "", "Description of the repository")
 	CreateCmd.Flags().IntVar(&namespaceID, "namespace", 0, "Namespace ID under which the repository will be created")
 	CreateCmd.Flags().StringVar(&visibility, "visibility", "private", "Visibility of the repository (private, internal, public)")
+	CreateCmd.Flags().StringVar(&maintainerGroupName, "maintainerGroup", "", "Group containing maintainers")
+	CreateCmd.Flags().StringVar(&developerGroupName, "developerGroup", "", "Group containing developers")
 
 	CreateCmd.MarkFlagRequired("name")
 }
