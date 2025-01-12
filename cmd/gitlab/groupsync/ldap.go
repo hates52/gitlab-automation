@@ -178,8 +178,6 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 			err = gitlab.AddMemberToGroup(client, group.Name, m.Name, nil)
 			if err != nil {
 				log.Fatalf("error: %v", err)
-			} else {
-				fmt.Printf("User '%s' successfully added to the group '%s'.\n", m.Name, group.Name)
 			}
 		}
 		for _, m := range extra {
@@ -187,8 +185,6 @@ func ldapGroupSync(cmd *cobra.Command, args []string) {
 			err = gitlab.RemoveUserFromGroup(client, group.Name, m.Name)
 			if err != nil {
 				log.Fatalf("error: %v", err)
-			} else {
-				fmt.Printf("User '%s' successfully remove from group '%s'.\n", m.Name, group.Name)
 			}
 		}
 
