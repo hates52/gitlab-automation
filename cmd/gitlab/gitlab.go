@@ -23,15 +23,15 @@ var (
 )
 
 var GitlabCmd = &cobra.Command{
-	Use:                   "gitlab",
-	Short:                 "Managing GitLab platform",
+	Use:                   "gitlab-ce",
+	Short:                 "Managing GitLab-CE platform",
 	DisableFlagsInUseLine: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},
 }
 
-// Get ma
+// Display the username currently user
 var WhoamiCmd = &cobra.Command{
 	Use:   "whoami",
 	Short: "Display the username currently user",
